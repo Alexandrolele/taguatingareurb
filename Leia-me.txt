@@ -1,0 +1,20 @@
+2. No computador SEM INTERNET (Destino)
+Agora, leve o pendrive para o computador onde o sistema vai ficar.
+
+Instale o Python: Use o instalador oficial (python-3.x.exe) que você também deve ter baixado e colocado no pendrive. Não esqueça de marcar "Add Python to PATH".
+
+Copie a pasta do seu projeto do pendrive para o computador (ex: C:\Sistema_REURB).
+rodar comando no vs code streamlit run sistema.py
+
+Abra o CMD dentro da pasta pacotes que está no seu pendrive.
+
+Execute o comando de instalação offline:
+digitar o comando abaixo no monitor serial
+
+Bash
+pip install --no-index --find-links=. streamlit pandas fpdf
+
+O parâmetro --no-index diz ao computador para não procurar na internet, e --find-links=. diz para procurar os arquivos na pasta atual.
+
+comando ara baixararquivos 
+pip install streamlit pandas fpdf validate-docbr

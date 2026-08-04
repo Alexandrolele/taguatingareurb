@@ -1,0 +1,112 @@
+{
+    "nome": "Setor Buritizinho",
+    "local": "TAGUATINGA -TO",
+    "modalidade": "Reurb-E (Específica)",
+    "num_crf": "02",
+    "ano_crf": "2026",
+    "area_total": 246030.13,
+    "ruas": 18,
+    "area_viaria": 67055.64,
+    "quadras": [
+        {
+            "quadra": "7",
+            "lotes": 35
+        },
+        {
+            "quadra": "8",
+            "lotes": 29
+        },
+        {
+            "quadra": "9",
+            "lotes": 24
+        },
+        {
+            "quadra": "10",
+            "lotes": 23
+        },
+        {
+            "quadra": "11",
+            "lotes": 23
+        },
+        {
+            "quadra": "12",
+            "lotes": 20
+        },
+        {
+            "quadra": "13",
+            "lotes": 21
+        },
+        {
+            "quadra": "14",
+            "lotes": 19
+        },
+        {
+            "quadra": "15",
+            "lotes": 20
+        },
+        {
+            "quadra": "16",
+            "lotes": 20
+        },
+        {
+            "quadra": "17",
+            "lotes": 20
+        },
+        {
+            "quadra": "18",
+            "lotes": 20
+        },
+        {
+            "quadra": "19",
+            "lotes": 21
+        },
+        {
+            "quadra": "24",
+            "lotes": 14
+        },
+        {
+            "quadra": "25",
+            "lotes": 9
+        },
+        {
+            "quadra": "32",
+            "lotes": 12
+        },
+        {
+            "quadra": "33",
+            "lotes": 1
+        },
+        {
+            "quadra": "34",
+            "lotes": 8
+        },
+        {
+            "quadra": "41",
+            "lotes": 20
+        },
+        {
+            "quadra": "42",
+            "lotes": 20
+        },
+        {
+            "quadra": "48",
+            "lotes": 19
+        },
+        {
+            "quadra": "49",
+            "lotes": 18
+        },
+        {
+            "quadra": "53",
+            "lotes": 19
+        },
+        {
+            "quadra": "54",
+            "lotes": 20
+        },
+        {
+            "quadra": "57",
+            "lotes": 39
+        }
+    ]
+}
