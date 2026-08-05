@@ -71,7 +71,11 @@ def realizar_backup():
             shutil.copy2(arquivo_original, nome_backup)
 
 # --- 2. CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="REURB - Taguatinga-TO", layout="wide")
+st.set_page_config(
+    page_title="REURB - Taguatinga-TO", 
+    page_icon="logo_prefeitura.png",  # <-- Substitua pelo nome exato do arquivo de imagem que você tem na pasta
+    layout="wide"
+)
 
 if 'autenticado' not in st.session_state:
     st.session_state.autenticado = False
