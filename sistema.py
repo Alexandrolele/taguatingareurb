@@ -14,6 +14,28 @@ from firebase_admin import credentials, db
 import autorizacao  
 from gerar_certidao import gerar_pdf_projeto
 import certidaoreurb  # 🌟 Importando sua nova página de Certidão Individual
+import streamlit as st
+
+# Ocultar menu, cabeçalho, rodapé e o botão "Manage app"
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stAppHeader {display: none;}
+    div[data-testid="stToolbar"] {display: none;}
+    div[data-testid="stStatusWidget"] {display: none;}
+    .viewerBadge_container__163Vn {display: none !important;}
+    
+    /* Esconde o botão "Manage app" e elementos de desenvolvedor do Streamlit Cloud */
+    [data-testid="stDecoration"] {display: none;}
+    div[class*="viewerBadge"] {display: none !important;}
+    button[title="Manage app"] {display: none !important;}
+    div[data-testid="manage-app-button"] {display: none !important;}
+    #stDecoration {display: none !important;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # --- 0. INICIALIZAÇÃO DO FIREBASE (NUVEM / LOCAL) ---
 def inicializar_firebase():
