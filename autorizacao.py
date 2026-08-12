@@ -7,10 +7,8 @@ import streamlit as st
 from validate_docbr import CPF
 import firebase_admin
 from firebase_admin import credentials, db
-
 import base64
 import json
-
 
 # Decodifica a string Base64 salva no Secrets do Streamlit
 firebase_base64_str = st.secrets["FIREBASE_BASE64"]
