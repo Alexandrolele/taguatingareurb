@@ -190,10 +190,19 @@ def gerar_pdf_projeto(dados_projeto, df_proprietarios, data_manual):
     pdf.set_font("Arial", "", 11)
     pdf.multi_cell(0, 7, limpar_texto(texto_tecnico), align="J")
 
-    # --- 2. MATRÍCULAS E OCUPANTES ---
+    # --- 2. MATRÍCULAS ATINGIDAS ---
     pdf.ln(5)
     pdf.set_font("Arial", "B", 11)
     pdf.cell(0, 10, limpar_texto("2. MATRÍCULAS ATINGIDAS:"), 0, 1)
+
+    # --- TEXTO DESCRITIVO CORRIGIDO E INSERIDO ---
+    pdf.set_font("Arial", "", 11)
+    texto_matriculas = (
+        "O núcleo urbano atinge parte ou a totalidade das seguintes "
+        "matrículas do Cartório de Registro de Imóveis de Taguatinga - TO:"
+    )
+    pdf.multi_cell(0, 7, limpar_texto(texto_matriculas), align="J")
+    pdf.ln(3)
 
     if df_proprietarios is not None and not df_proprietarios.empty:
         df_prop = df_proprietarios.copy()
