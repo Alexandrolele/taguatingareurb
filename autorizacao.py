@@ -11,11 +11,12 @@ import base64
 import json
 
 # --- INICIALIZAÇÃO DO FIREBASE ---
-# Evita reinicializar o app múltiplas vezes no Streamlit
 if not firebase_admin._apps:
-    # Decodifica a string Base64 salva no Secrets do Streamlit Cloud
-    firebase_base64_str = st.secrets["FIREBASE_BASE64"]
-    cred_dict = json.loads(base64.b64decode(firebase_base64_str).decode("utf-8"))
+    import json
+    
+    # Puxa o JSON salvo como string direto do Streamlit Secrets
+    firebase_json_str = st.secrets["FIREBASE_JSON"]
+    cred_dict = json.loads(firebase_json_str)
     
     cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(
