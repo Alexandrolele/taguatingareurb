@@ -8,6 +8,14 @@ from validate_docbr import CPF
 import firebase_admin
 from firebase_admin import credentials, db
 
+import base64
+import json
+
+
+# Decodifica a string Base64 salva no Secrets do Streamlit
+firebase_base64_str = st.secrets["FIREBASE_BASE64"]
+cred_dict = json.loads(base64.b64decode(firebase_base64_str).decode("utf-8"))
+
 # --- INICIALIZAÇÃO DO FIREBASE ---
 # Evita reinicializar o app múltiplas vezes no Streamlit
 if not firebase_admin._apps:
