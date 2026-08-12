@@ -10,7 +10,8 @@ from firebase_admin import credentials, db
 import base64
 import json
 
-# Decodifica a string Base64 salva no Secrets do Streamlit
+
+# Lê a string base64 configurada no painel do Streamlit Cloud
 firebase_base64_str = st.secrets["FIREBASE_BASE64"]
 cred_dict = json.loads(base64.b64decode(firebase_base64_str).decode("utf-8"))
 
