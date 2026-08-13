@@ -168,7 +168,7 @@ def gerar_pdf_autorizacao_fpdf(dados):
         f" com área total de {f(dados['Area_Total'])}m²,"
         f" ({f(dados['Area_Extenso'])}), conforme memorial descritivo,"
         f" Taguatinga/TO, ao (à) detentor (a), {f(dados['Nome'], 'upper')},"
-        f" brasileiro(a), estado civil {f(dados['Estado Civil'], 'lower')},"
+        f" brasileiro(a), {f(dados['Estado Civil'], 'lower')},"
         f" profissão {f(dados['Profissao'], 'lower')}, portador(a) da CI/RG nº"
         f" {rg_completo} e do CPF N º {cpf_formatado}, residente na"
         f" {f(dados['End_Residencial'])}, {f(dados['Bairro_Residencial'])}. O"
