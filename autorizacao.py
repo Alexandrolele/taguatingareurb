@@ -51,23 +51,35 @@ def obter_referencia_firebase(caminho=""):
         return db.reference(caminho, app=app)
     return db.reference(app=app)
 
-# --- FUNÇÕES DE BANCO DE DADOS COM FIREBASE ---
-def carregar_dados_firebase():
+def obter_referencia_firebase(caminho=""):
+    """Garante que a conexão com o Firebase utilize o app inicializado corretamente."""
     try:
-        ref = obter_referencia_firebase("autorizacoes_titulos")
-        dados = ref.get()
-        
-        if not dados:
-            return pd.DataFrame()
-        
-        lista_registros = list(dados.values())
-        return pd.DataFrame(lista_registros)
-    except exceptions.NotFoundError:
-        return pd.DataFrame()
-    except Exception as e:
-        st.error(f"Erro ao carregar dados: {e}")
-        return pd.DataFrame()
+        app = firebase_admin.get_app()
+    except ValueError:
+        # Se o app padrão não existir, inicializa agora usando st.secrets ou arquivo local
+        if "firebase" in st.secrets:
+            creds_dict = dict(st.secrets["firebase"])
+            cred = firebase_admin.credentials.Certificate(creds_dict)
+            database_url = st.secrets["firebase"].get("databaseURL", "")
+            if not database_url:
+                project_id = creds_dict.get("project_id", "")
+                database_url = f"https://{project_id}-default-rtdb.firebaseio.com/"
+            app = firebase_admin.initialize_app(cred, {'databaseURL': database_url})
+        else:
+            import os, json
+            if os.path.exists("firebase_key.json"):
+                cred = firebase_admin.credentials.Certificate("firebase_key.json")
+                with open("firebase_key.json", "r") as f:
+                    key_data = json.load(f)
+                    project_id = key_data.get("project_id", "")
+                    database_url = f"https://{project_id}-default-rtdb.firebaseio.com/"
+                app = firebase_admin.initialize_app(cred, {'databaseURL': database_url})
+            else:
+                raise ValueError("As credenciais do Firebase não foram encontradas no st.secrets nem em arquivo local.")
 
+    if caminho:
+        return db.reference(caminho, app=app)
+    return db.reference(app=app)
 
 def salvar_registro(*args):
     colunas = [
