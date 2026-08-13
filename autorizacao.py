@@ -168,7 +168,7 @@ def gerar_pdf_autorizacao_fpdf(dados):
         f" com área total de {f(dados['Area_Total'])}m²,"
         f" ({f(dados['Area_Extenso'])}), conforme memorial descritivo,"
         f" Taguatinga/TO, ao (à) detentor (a), {f(dados['Nome'], 'upper')},"
-        " brasileiro(a), estado civil {f(dados['Estado Civil'], 'lower')},"
+        f" brasileiro(a), estado civil {f(dados['Estado Civil'], 'lower')},"
         f" profissão {f(dados['Profissao'], 'lower')}, portador(a) da CI/RG nº"
         f" {rg_completo} e do CPF N º {cpf_formatado}, residente na"
         f" {f(dados['End_Residencial'])}, {f(dados['Bairro_Residencial'])}. O"
@@ -180,7 +180,7 @@ def gerar_pdf_autorizacao_fpdf(dados):
         " de Imóveis e Tabelionato 1º de Notas da Comarca de Taguatinga TO, sob"
         " a Matricula nº 2869, Livro 2-RGR-01 em 23/07/2014, posteriormente"
         f" desmembrado para a {f(dados['Lei_Aplicada'])}, em ato contínuo"
-        " desmembrado referido lote para a MATRÍCULA nº {f(dados['Matricula'])},"
+        f" desmembrado referido lote para a MATRÍCULA nº {f(dados['Matricula'])},"
         " recebido pela OURTOGANTE, conforme estabelecido no parágrafo 3º, do"
         " artigo 1º, da Lei Municipal n°438/2014. Certifica e da fé que foram"
         " cumpridas as exigências legais que capacitam e autorizam a"
@@ -204,7 +204,6 @@ def gerar_pdf_autorizacao_fpdf(dados):
         " forma, que será devidamente assinado por elas e por 02 (duas)"
         " testemunhas."
     )
-
     pdf.multi_cell(0, 5, limpar(texto_corpo), align="J")
     pdf.ln(10)
 
