@@ -13,8 +13,8 @@ import json
 # --- INICIALIZAÇÃO DO FIREBASE ---
 if not firebase_admin._apps:
     import json
-
-    # Puxa o JSON salvo como string direto do Streamlit Secrets
+    
+    # Puxa o JSON salvo como string ou dict direto do Streamlit Secrets
     firebase_json_str = st.secrets["FIREBASE_JSON"]
     
     if isinstance(firebase_json_str, str):
@@ -22,7 +22,7 @@ if not firebase_admin._apps:
     else:
         cred_dict = dict(firebase_json_str)
 
-    # Corrige quebras de linha escapadas na chave privada
+    # Converte explicitamente a string literal '\\n' em quebras de linha reais '\n'
     if "private_key" in cred_dict:
         cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
 
@@ -30,7 +30,6 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(
         cred, {"databaseURL": "https://delegacia-3f2fe-default-rtdb.firebaseio.com/"}
     )
-
 
 def gerar_pdf_autorizacao_fpdf(dados):
     """Gera o Título de Permissão com cabeçalho centralizado e tabela à direita."""
