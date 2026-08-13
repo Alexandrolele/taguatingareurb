@@ -531,6 +531,10 @@ elif st.session_state.pagina == 'cadastro_proprietario':
                                endereco, bairro, cidade, uf, 
                                h_nome, h_est_civil, h_profissao, h_rg.strip().upper(), h_ssp_uf, h_cpf_limpo]
                 
+                # Cria dicionário para enviar ao Firebase com chaves organizadas
+                dicionario_firebase = dict(zip(colunas, dados_linha))
+                
+                # 1. Salva localmente no CSV (Mantendo o seu fluxo atual)
                 if st.session_state.editando_index is not None:
                     df_completo = pd.read_csv(nome_csv, dtype=str)
                     df_completo.iloc[st.session_state.editando_index] = dados_linha
@@ -546,6 +550,15 @@ elif st.session_state.pagina == 'cadastro_proprietario':
                     else:
                         novo_dado.to_csv(nome_csv, mode='a', header=False, index=False, encoding="utf-8-sig")
                     st.success(f"✅ Lote {lote_n} cadastrado com sucesso!")
+                
+                # 2. Envia automaticamente para o Firebase Realtime Database
+                try:
+                    nome_nucleo_limpo = re.sub(r'[^a-zA-Z0-9]', '_', p['nome'])
+                    # Caminho no Realtime Database: nucleos / NomeDoNucleo / quadras / QuadraX / lotes / LoteY
+                    ref_path = f"nucleos/{nome_nucleo_limpo}/quadras/quadra_{q_sel}/lotes/lote_{lote_n}"
+                    db.reference(ref_path).set(dicionario_firebase)
+                except Exception as e:
+                    st.warning(f"⚠️ Salvo localmente, mas houve um erro ao sincronizar com o Firebase: {e}")
                 
                 st.rerun()
     
@@ -568,7 +581,16 @@ elif st.session_state.pagina == 'cadastro_proprietario':
                     st.rerun()
                 
                 if btn_col2.button("🗑️", key=f"del_{row['index']}"):
+                    lote_excluir = row['Lote']
                     df.drop(int(row['index'])).to_csv(nome_csv, index=False, encoding="utf-8-sig")
+                    
+                    # Remove também do Firebase se desejar manter sincronizado
+                    try:
+                        nome_nucleo_limpo = re.sub(r'[^a-zA-Z0-9]', '_', p['nome'])
+                        db.reference(f"nucleos/{nome_nucleo_limpo}/quadras/quadra_{q_sel}/lotes/lote_{lote_excluir}").delete()
+                    except Exception:
+                        pass
+
                     if st.session_state.editando_index == int(row['index']):
                         st.session_state.editando_index = None
                         st.session_state.dados_edicao = {}
