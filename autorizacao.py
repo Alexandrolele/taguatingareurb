@@ -2,7 +2,7 @@ import json
 import os
 import re
 import firebase_admin
-from firebase_admin import db
+from firebase_admin import db, exceptions
 import pandas as pd
 import streamlit as st
 
@@ -128,18 +128,16 @@ def salvar_registro(chave_antiga, *args):
     cpf_sanitizado = str(args[7])
     lote_sanitizado = str(args[10])
     quadra_sanitizada = str(args[11])
-    
     chave_nova = (
         f"lote_{quadra_sanitizada}_{lote_sanitizado}_cpf_{cpf_sanitizado}".replace(
             ".", "_"
         )
     )
 
-    # Se a chave mudou (ex: alterou o CPF ou lote), exclui o registro antigo do Firebase
+    # Se a chave mudou, remove o registro antigo para não duplicar
     if chave_antiga and chave_antiga != chave_nova:
         obter_referencia_firebase(f"autorizacoes_titulos/{chave_antiga}").delete()
 
-    # Salva os dados no caminho atualizado/correto
     ref = obter_referencia_firebase(f"autorizacoes_titulos/{chave_nova}")
     ref.set(novo_dict)
 
@@ -295,7 +293,7 @@ def formulario_autorizacao(dados_edicao=None):
             elif not lote_num or not quadra_num:
                 st.error("❌ O preenchimento do Lote e da Quadra é obrigatório.")
             else:
-                # Recupera a chave antiga armazenada, caso venha de uma edição
+                # Pega a chave antiga caso esteja editando
                 chave_antiga = fonte_dados.get("_chave_firebase", None)
 
                 salvar_registro(
