@@ -10,55 +10,12 @@ from validate_docbr import CPF
 import firebase_admin
 from firebase_admin import credentials, db
 
-# Importações dos seus arquivos e funções internas
-import autorizacao  
-from gerar_certidao import gerar_pdf_projeto
-import certidaoreurb  # 🌟 Importando sua nova página de Certidão Individual
-import streamlit as st
-import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, db
-
-# Inicializa o Firebase apenas se ele ainda não foi inicializado
-if not firebase_admin._apps:
-    # Se você usa um arquivo JSON de credenciais:
-    cred = credentials.Certificate("caminho/para/seu/arquivo-servico.json")
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': 'https://rastreadorlele-default-rtdb.firebaseio.com/'
-    })
-    
-    # OU, se estiver usando Secrets do Streamlit Cloud (.streamlit/secrets.toml):
-    # import json
-    # cred_dict = dict(st.secrets["firebase"])
-    # cred = credentials.Certificate(cred_dict)
-    # firebase_admin.initialize_app(cred, {
-    #     'databaseURL': 'https://rastreadorlele-default-rtdb.firebaseio.com/'
-    # })
-
-# Agora sim, importe a sua página de autorização
-import autorizacao
-
-autorizacao.exibir_pagina()
-# Ocultar menu, cabeçalho, rodapé e o botão "Manage app"
-hide_streamlit_style = """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stAppHeader {display: none;}
-    div[data-testid="stToolbar"] {display: none;}
-    div[data-testid="stStatusWidget"] {display: none;}
-    .viewerBadge_container__163Vn {display: none !important;}
-    
-    /* Esconde o botão "Manage app" e elementos de desenvolvedor do Streamlit Cloud */
-    [data-testid="stDecoration"] {display: none;}
-    div[class*="viewerBadge"] {display: none !important;}
-    button[title="Manage app"] {display: none !important;}
-    div[data-testid="manage-app-button"] {display: none !important;}
-    #stDecoration {display: none !important;}
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+# --- 2. CONFIGURAÇÃO DA PÁGINA (Deve ser a primeira chamada do Streamlit) ---
+st.set_page_config(
+    page_title="REURB - Taguatinga-TO", 
+    page_icon="logo_prefeitura.png",
+    layout="wide"
+)
 
 # --- 0. INICIALIZAÇÃO DO FIREBASE (NUVEM / LOCAL) ---
 def inicializar_firebase():
@@ -82,6 +39,32 @@ def inicializar_firebase():
             st.warning(f"Aviso Firebase: {e}")
 
 inicializar_firebase()
+
+# Importações dos seus arquivos e funções internas (após o Firebase inicializado)
+import autorisação as autorizacao  # verifique se o nome do seu arquivo é autorizacao.py
+from gerar_certidao import gerar_pdf_projeto
+import certidaoreurb 
+
+# --- Ocultar menu, cabeçalho, rodapé e o botão "Manage app" ---
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stAppHeader {display: none;}
+    div[data-testid="stToolbar"] {display: none;}
+    div[data-testid="stStatusWidget"] {display: none;}
+    .viewerBadge_container__163Vn {display: none !important;}
+    
+    /* Esconde o botão "Manage app" e elementos de desenvolvedor do Streamlit Cloud */
+    [data-testid="stDecoration"] {display: none;}
+    div[class*="viewerBadge"] {display: none !important;}
+    button[title="Manage app"] {display: none !important;}
+    div[data-testid="manage-app-button"] {display: none !important;}
+    #stDecoration {display: none !important;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # --- 1. FUNÇÃO DE BACKUP AUTOMÁTICO ---
 def realizar_backup():
@@ -114,13 +97,6 @@ def realizar_backup():
             
             nome_backup = f"backups/backup_{data_hoje}_{hora_atual}_{arquivo_original}"
             shutil.copy2(arquivo_original, nome_backup)
-
-# --- 2. CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(
-    page_title="REURB - Taguatinga-TO", 
-    page_icon="logo_prefeitura.png",  # <-- Substitua pelo nome exato do arquivo de imagem que você tem na pasta
-    layout="wide"
-)
 
 if 'autenticado' not in st.session_state:
     st.session_state.autenticado = False
@@ -158,14 +134,13 @@ def tela_login():
                 st.error("Erro ao carregar cabeçalho visual.")
                     
             st.divider()
-                        
+                    
             usuario = st.text_input("Usuário", value="Michelaine")
             senha = st.text_input("Senha", type="password")
             
             st.write("<br>", unsafe_allow_html=True)
             
             if st.button("Acessar Sistema", use_container_width=True):
-                # Busca senha das secrets ou usa a padrão caso não configurado no cloud
                 senha_correta = st.secrets.get("SENHA_ADMIN", "lele4619") if "SENHA_ADMIN" in st.secrets else "lele4619"
                 if senha == senha_correta:
                     realizar_backup() 
@@ -363,7 +338,6 @@ elif st.session_state.pagina == 'cadastro_nucleo':
                 "quadras": lista_q
             }
             
-            # 🌟 Diferenciação do nome do arquivo usando o Nome + CRF + Ano
             crf_sufixo = f"_crf_{num_crf.strip()}_{ano_crf.strip()}" if num_crf.strip() and ano_crf.strip() else ""
             nome_arq_novo = f"projeto_{nome_n.replace(' ', '_').lower()}{crf_sufixo}.json"
             
@@ -451,7 +425,6 @@ elif st.session_state.pagina == 'cadastro_proprietario':
         st.session_state.pagina = 'detalhes_projeto'
         st.rerun()
 
-    # 🌟 Recurso para clonar dados se a pessoa possuir múltiplos lotes
     dados_autocompletar = {}
     if os.path.exists(nome_csv) and st.session_state.editando_index is None:
         df_existente = pd.read_csv(nome_csv, dtype=str)
