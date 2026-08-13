@@ -2,7 +2,31 @@ import streamlit as st
 import pandas as pd
 import re
 from firebase_admin import db, exceptions
-from pycpfcnpj.cpf import CPF
+
+# --- FUNÇÃO NATIVA PARA VALIDAR CPF ---
+def validar_cpf(cpf_str):
+    cpf_limpo = re.sub(r"\D", "", cpf_str)
+    
+    if len(cpf_limpo) != 11 or cpf_limpo == cpf_limpo[0] * 11:
+        return False
+        
+    # Validação do 1º dígito verificador
+    soma = sum(int(cpf_limpo[i]) * (10 - i) for i in range(9))
+    resto = (soma * 10) % 11
+    if resto == 10 or resto == 11:
+        resto = 0
+    if resto != int(cpf_limpo[9]):
+        return False
+        
+    # Validação do 2º dígito verificador
+    soma = sum(int(cpf_limpo[i]) * (11 - i) for i in range(10))
+    resto = (soma * 10) % 11
+    if resto == 10 or resto == 11:
+        resto = 0
+    if resto != int(cpf_limpo[10]):
+        return False
+        
+    return True
 
 # --- FUNÇÕES DE BANCO DE DADOS COM FIREBASE ---
 def carregar_dados_firebase():
@@ -13,11 +37,9 @@ def carregar_dados_firebase():
         if not dados:
             return pd.DataFrame()
         
-        # Transforma o dicionário salvo no Firebase em um DataFrame do Pandas
         lista_registros = list(dados.values())
         return pd.DataFrame(lista_registros)
     except exceptions.NotFoundError:
-        # Retorna um DataFrame vazio caso o caminho ainda não exista no banco
         return pd.DataFrame()
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
@@ -158,9 +180,8 @@ def formulario_autorizacao(dados_edicao=None):
         if st.form_submit_button("💾 SALVAR"):
             cpf_limpo = re.sub(r"\D", "", cpf)
             rg_limpo = re.sub(r"[\s.-]", "", rg)
-            validador_cpf = CPF()
 
-            if not validador_cpf.validate(cpf_limpo):
+            if not validar_cpf(cpf_limpo):
                 st.error("❌ CPF INVÁLIDO")
             elif not rg_limpo.isdigit():
                 st.error("❌ RG INVÁLIDO: Digite apenas números.")
@@ -204,7 +225,6 @@ def lista_e_gestao():
                 db.reference(f"autorizacoes_titulos/{chave_del}").delete()
                 st.rerun()
 
-            # Nota: Certifique-se de que gerar_pdf_autorizacao_fpdf esteja definida no escopo
             if 'gerar_pdf_autorizacao_fpdf' in globals():
                 pdf_bytes = gerar_pdf_autorizacao_fpdf(row)
                 c4.download_button("📄 PDF", pdf_bytes, f"Titulo_{row['Nome']}_Lote_{row['Lote']}.pdf", "application/pdf", key=f"p_{idx}")
