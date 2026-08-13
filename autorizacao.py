@@ -1,9 +1,27 @@
 import json
 import os
+import re
 import firebase_admin
 from firebase_admin import db, exceptions
 import pandas as pd
 import streamlit as st
+
+
+# --- FUNÇÃO PARA CARREGAR DADOS DO FIREBASE ---
+def carregar_dados_firebase():
+  """Carrega os dados de autorizações do Firebase e retorna um DataFrame."""
+  ref = obter_referencia_firebase("autorizacoes_titulos")
+  dados = ref.get()
+
+  if not dados:
+    return pd.DataFrame()
+
+  lista_dados = []
+  for chave, valor in dados.items():
+    if isinstance(valor, dict):
+      lista_dados.append(valor)
+
+  return pd.DataFrame(lista_dados)
 
 
 # --- FUNÇÃO NATIVA PARA VALIDAR CPF ---
@@ -133,9 +151,7 @@ def formulario_autorizacao(dados_edicao=None):
       st.rerun()
 
   dados_autocompletar = {}
-  df_existente = (
-      carregar_dados_firebase()
-  )  # Certifique-se de que esta função existe
+  df_existente = carregar_dados_firebase()
 
   if not df_existente.empty and dados_edicao is None:
     df_unicos = df_existente.drop_duplicates(subset=["CPF", "Nome"])
