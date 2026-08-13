@@ -15,7 +15,30 @@ import autorizacao
 from gerar_certidao import gerar_pdf_projeto
 import certidaoreurb  # 🌟 Importando sua nova página de Certidão Individual
 import streamlit as st
+import streamlit as st
+import firebase_admin
+from firebase_admin import credentials, db
 
+# Inicializa o Firebase apenas se ele ainda não foi inicializado
+if not firebase_admin._apps:
+    # Se você usa um arquivo JSON de credenciais:
+    cred = credentials.Certificate("caminho/para/seu/arquivo-servico.json")
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': 'https://rastreadorlele-default-rtdb.firebaseio.com/'
+    })
+    
+    # OU, se estiver usando Secrets do Streamlit Cloud (.streamlit/secrets.toml):
+    # import json
+    # cred_dict = dict(st.secrets["firebase"])
+    # cred = credentials.Certificate(cred_dict)
+    # firebase_admin.initialize_app(cred, {
+    #     'databaseURL': 'https://rastreadorlele-default-rtdb.firebaseio.com/'
+    # })
+
+# Agora sim, importe a sua página de autorização
+import autorizacao
+
+autorizacao.exibir_pagina()
 # Ocultar menu, cabeçalho, rodapé e o botão "Manage app"
 hide_streamlit_style = """
     <style>
