@@ -13,11 +13,19 @@ import json
 # --- INICIALIZAÇÃO DO FIREBASE ---
 if not firebase_admin._apps:
     import json
-    
+
     # Puxa o JSON salvo como string direto do Streamlit Secrets
     firebase_json_str = st.secrets["FIREBASE_JSON"]
-    cred_dict = json.loads(firebase_json_str)
     
+    if isinstance(firebase_json_str, str):
+        cred_dict = json.loads(firebase_json_str)
+    else:
+        cred_dict = dict(firebase_json_str)
+
+    # Corrige quebras de linha escapadas na chave privada
+    if "private_key" in cred_dict:
+        cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
+
     cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(
         cred, {"databaseURL": "https://delegacia-3f2fe-default-rtdb.firebaseio.com/"}
