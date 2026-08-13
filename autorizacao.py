@@ -29,24 +29,28 @@ def validar_cpf(cpf_str):
         
     return True
 
-# --- FUNÇÃO SEGURA PARA OBTER REFERÊNCIA DO FIREBASE ---
-def obter_referencia_firebase(caminho=""):
-    """Garante que a conexão com o Firebase utilize o app inicializado corretamente."""
-    if not firebase_admin._apps:
-        # Se por acaso o app não estiver inicializado, tenta carregar do st.secrets
-        try:
-            if "firebase" in st.secrets:
-                creds_dict = dict(st.secrets["firebase"])
-                cred = firebase_admin.credentials.Certificate(creds_dict)
-                database_url = st.secrets["firebase"].get("databaseURL", "")
-                if not database_url:
-                    project_id = creds_dict.get("project_id", "")
-                    database_url = f"https://{project_id}-default-rtdb.firebaseio.com/"
-                firebase_admin.initialize_app(cred, {'databaseURL': database_url})
-        except Exception:
-            pass
+import firebase_admin
+from firebase_admin import db
 
-    app = firebase_admin.get_app()
+def obter_referencia_firebase(caminho=""):
+    """Retorna a referência do Realtime Database garantindo que o app padrão existe."""
+    # Como o sistema.py já chamou a inicialização global, apenas pegamos o app padrão
+    try:
+        app = firebase_admin.get_app()
+    except ValueError:
+        # Se por acaso rodar isolado, tenta inicializar do st.secrets
+        import streamlit as st
+        if "firebase" in st.secrets:
+            creds_dict = dict(st.secrets["firebase"])
+            cred = firebase_admin.credentials.Certificate(creds_dict)
+            database_url = st.secrets["firebase"].get("databaseURL", "")
+            if not database_url:
+                project_id = creds_dict.get("project_id", "")
+                database_url = f"https://{project_id}-default-rtdb.firebaseio.com/"
+            app = firebase_admin.initialize_app(cred, {'databaseURL': database_url})
+        else:
+            raise ValueError("O Firebase não foi inicializado corretamente.")
+
     if caminho:
         return db.reference(caminho, app=app)
     return db.reference(app=app)
