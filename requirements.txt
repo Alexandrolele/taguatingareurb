@@ -6,3 +6,4 @@ firebase-admin
 pillow
 requests
 reportlab
+pycpfcnpj
