@@ -19,7 +19,7 @@ def carregar_dados_firebase():
     lista_dados = []
     for chave, valor in dados.items():
         if isinstance(valor, dict):
-            # Armazena a chave real do Firebase para controle de edição
+            # Guarda a chave real do Firebase para gerenciar a edição corretamente
             valor["_chave_firebase"] = chave
             lista_dados.append(valor)
 
@@ -134,7 +134,7 @@ def salvar_registro(chave_antiga, *args):
         )
     )
 
-    # Se a chave mudou, remove o registro antigo para não duplicar
+    # Se alterou o lote, quadra ou CPF, remove o registro antigo para evitar duplicidade
     if chave_antiga and chave_antiga != chave_nova:
         obter_referencia_firebase(f"autorizacoes_titulos/{chave_antiga}").delete()
 
@@ -293,7 +293,7 @@ def formulario_autorizacao(dados_edicao=None):
             elif not lote_num or not quadra_num:
                 st.error("❌ O preenchimento do Lote e da Quadra é obrigatório.")
             else:
-                # Pega a chave antiga caso esteja editando
+                # Resgata a chave antiga caso venha do formulário de edição
                 chave_antiga = fonte_dados.get("_chave_firebase", None)
 
                 salvar_registro(
