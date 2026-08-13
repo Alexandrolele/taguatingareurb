@@ -28,7 +28,7 @@ if not firebase_admin._apps:
 
     cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(
-        cred, {"databaseURL": "https://delegacia-3f2fe-default-rtdb.firebaseio.com/"}
+        cred, {"databaseURL": "https://taguatingareurb-default-rtdb.firebaseio.com/"}
     )
 
 def gerar_pdf_autorizacao_fpdf(dados):
