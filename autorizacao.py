@@ -1,94 +1,263 @@
-import json
+from datetime import datetime
 import os
 import re
-import firebase_admin
-from firebase_admin import db, exceptions
+from fpdf import FPDF
 import pandas as pd
 import streamlit as st
+from validate_docbr import CPF
+
+# Nome do arquivo de banco de dados
+DB_AUTORIZACAO = "dados_autor_titulos.csv"
 
 
-# --- FUNÇÃO PARA CARREGAR DADOS DO FIREBASE ---
-def carregar_dados_firebase():
-    """Carrega os dados de autorizações do Firebase e retorna um DataFrame."""
-    ref = obter_referencia_firebase("autorizacoes_titulos")
-    dados = ref.get()
+def gerar_pdf_autorizacao_fpdf(dados):
+    """Gera o Título de Permissão com cabeçalho centralizado e tabela à direita."""
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.add_page()
+    pdf.set_margins(20, 20, 20)
 
-    if not dados:
-        return pd.DataFrame()
+    # --- FUNÇÕES DE APOIO ---
+    def f(campo, transform=None):
+        texto = (
+            str(campo) if pd.notna(campo) and str(campo).lower() != "nan" else ""
+        )
+        if texto.endswith(".0"):
+            texto = texto[:-2]
+        if transform == "lower":
+            return texto.lower()
+        if transform == "upper":
+            return texto.upper()
+        return texto
 
-    lista_dados = []
-    for chave, valor in dados.items():
-        if isinstance(valor, dict):
-            # Guarda a chave real do Firebase para gerenciar a edição corretamente
-            valor["_chave_firebase"] = chave
-            lista_dados.append(valor)
+    def limpar(txt):
+        if not txt:
+            return ""
+        return str(txt).encode("latin-1", "replace").decode("latin-1")
 
-    return pd.DataFrame(lista_dados)
+    def formatar_cpf(num_cpf):
+        num_cpf = re.sub(r"\D", "", str(num_cpf))
+        if len(num_cpf) == 11:
+            return f"{num_cpf[:3]}.{num_cpf[3:6]}.{num_cpf[6:9]}-{num_cpf[9:]}"
+        return num_cpf
+
+    # --- CABEÇALHO CENTRALIZADO ---
+    pdf.set_y(12)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 6, limpar(""), ln=True, align="C")
+    pdf.cell(0, 6, limpar(""), ln=True, align="C")
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 5, limpar(""), ln=True, align="C")
+    pdf.ln(35)
+
+    # --- TABELA DE IDENTIFICAÇÃO (DIREITA) ---
+    hoje = datetime.now()
+    meses = [
+        "janeiro",
+        "fevereiro",
+        "março",
+        "abril",
+        "maio",
+        "junho",
+        "julho",
+        "agosto",
+        "setembro",
+        "outubro",
+        "novembro",
+        "dezembro",
+    ]
+    data_curta = f"{hoje.day} de {meses[hoje.month-1]} de {hoje.year}"
+
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", "B", 9)
+
+    largura_tabela = 75
+    x_inicial = 115
+    pdf.set_x(x_inicial)
+
+    titulo_num = f(dados.get("Titulo_Permissao"))
+    livro_num = f(dados.get("Livro_Tombo"))
+    folhas_num = f(dados.get("Fls"))
+
+    pdf.cell(
+        largura_tabela,
+        7,
+        limpar(f"TÍTULO DE PERMISSÃO Nº {titulo_num}"),
+        border=1,
+        ln=True,
+        align="C",
+    )
+
+    pdf.set_x(x_inicial)
+    pdf.cell(40, 7, limpar(f"LIVRO TOMBO Nº {livro_num}"), border=1, align="C")
+    pdf.cell(35, 7, limpar(f"FLS. {folhas_num}"), border=1, ln=True, align="C")
+
+    pdf.set_x(x_inicial)
+    pdf.cell(
+        largura_tabela,
+        7,
+        limpar(f"TAGUATINGA - TO, {data_curta}"),
+        border=1,
+        ln=True,
+        align="C",
+    )
+
+    pdf.ln(10)
+
+    # --- TÍTULO JURÍDICO ---
+    pdf.set_font("Arial", "B", 10)
+    pdf.set_left_margin(100)
+
+    titulo_texto = (
+        "TÍTULO DE PERMISSÃO PARA REGISTRO E TRANSFERÊNCIA DE DOMÍNIO QUE O"
+        " MUNICÍPIO DE TAGUATINGA - TO OUTORGA À PESSOA CONTEMPLADA ABAIXO"
+        " IDENTIFICADA, CONFORME AUTORIZAÇÃO DO DECRETO N.º 244/2025."
+    )
+
+    pdf.multi_cell(0, 5, limpar(titulo_texto), border=0, align="J")
+    pdf.set_left_margin(20)
+    pdf.ln(8)
+
+    # --- CORPO DO TEXTO JURÍDICO ---
+    pdf.set_font("Arial", "", 10)
+
+    chanfro_txt = (
+        (
+            f", chanfro com {f(dados.get('Chanfro_Com'))}, medindo"
+            f" {f(dados.get('Chanfro_M'))} metros"
+        )
+        if f(dados.get("Chanfro_Com"))
+        else ""
+    )
+    cpf_formatado = formatar_cpf(dados.get("CPF", ""))
+
+    v_rg = f(dados.get("RG"))
+    v_ssp = f(dados.get("SSP"))
+    v_uf = f(dados.get("UF_RG"))
+    if v_rg:
+        rg_completo = f"{v_rg} {v_ssp}/{v_uf}".strip().replace(" /", "/")
+    else:
+        rg_completo = "____________________"
+
+    texto_corpo = (
+        "MUNICIPIO DE TAGUATINGA-TO, pessoa jurídica de direito público interno,"
+        " inscrita no CNPJ/MF sob a n° 02.306.900/0001-97 com sede administrativa"
+        " sito à Avenida Airosa de Sousa Godinho, Quadra 10, Lote 11, s/nº Setor"
+        " Bom Jesus Taguatinga TO, neste ato representado pelo Prefeito"
+        " Municipal PAULO ROBERTO RIBEIRO, brasileiro, casado, empresário,"
+        " portador da CI/RG nº 446.212 SDGPC-GO e do CPF/MF nº 088.124.461-91,"
+        " residente e domiciliado em Taguatinga TO, a presente permissão é"
+        " realizada com amparo no Processo Administrativo em epígrafe e em"
+        " estrita consonância com as dispositions do Decreto nº 244 de 10 de"
+        " dezembro de 2025, de imóveis urbanos a partir de 80m², após detida"
+        " análise dos documentos e provas juntadas pelo o Outorgado, a posse"
+        " deste Título concede a plena autorização para a lavratura da"
+        " competente Escritura Pública de Compra e Venda perante o Cartório de"
+        " Notas e seu posterior e obrigatório registro junto ao Cartório de"
+        " Registro de Imóveis. O procedimento de regularização será"
+        " integralmente concluído após o recolhimento do Imposto sobre a"
+        " Transmissão de Bens Imóveis (ITBI), ônus que será assumido por esta"
+        f" Municipalidade, concernente ao LOTE URBANO n.º {f(dados['Lote'])},"
+        f" Quadra: {f(dados['Quadra'])}, endereço do lote"
+        f" {f(dados['End_Lote'])}, Setor {f(dados['Setor'])}. Dentro dos"
+        " seguintes limites e confrontações: frente para a"
+        f" {f(dados['Frente_Com'])}, com medida de {f(dados['Frente_M'])} metros;"
+        f" fundos com o {f(dados['Fundo_Com'])}, com {f(dados['Fundo_M'])}"
+        f" metros; lado direito com o {f(dados['Dir_Com'])}, com"
+        f" {f(dados['Dir_M'])} metros e lado esquerdo com o"
+        f" {f(dados['Esq_Com'])}, com {f(dados['Esq_M'])} metros{chanfro_txt},"
+        f" com área total de {f(dados['Area_Total'])}m²,"
+        f" ({f(dados['Area_Extenso'])}), conforme memorial descritivo,"
+        f" Taguatinga/TO, ao (à) detentor (a), {f(dados['Nome'], 'upper')},"
+        " brasileiro(a), estado civil {f(dados['Estado Civil'], 'lower')},"
+        f" profissão {f(dados['Profissao'], 'lower')}, portador(a) da CI/RG nº"
+        f" {rg_completo} e do CPF N º {cpf_formatado}, residente na"
+        f" {f(dados['End_Residencial'])}, {f(dados['Bairro_Residencial'])}. O"
+        " Município de Taguatinga TO, aqui designado OUTORGANTE, é legitimo"
+        " titular do domínio do imóvel público municipal, conforme Título"
+        " Definitivo de Domínio nº 109/2014, lavrado no livra 85/2014, na folha"
+        " 009 e expedido em Palmas TO, no dia 14/05/2014, pelo ITERTINS Instituto"
+        " de Terras do Estado do Tocantins, registrado no Cartório de Registro"
+        " de Imóveis e Tabelionato 1º de Notas da Comarca de Taguatinga TO, sob"
+        " a Matricula nº 2869, Livro 2-RGR-01 em 23/07/2014, posteriormente"
+        f" desmembrado para a {f(dados['Lei_Aplicada'])}, em ato contínuo"
+        " desmembrado referido lote para a MATRÍCULA nº {f(dados['Matricula'])},"
+        " recebido pela OURTOGANTE, conforme estabelecido no parágrafo 3º, do"
+        " artigo 1º, da Lei Municipal n°438/2014. Certifica e da fé que foram"
+        " cumpridas as exigências legais que capacitam e autorizam a"
+        " ilustríssima senhora Oficiala de Registro de Imóveis que transfira a"
+        " propriedade da matricula que foi aberta no livro Geral de Reg. de"
+        " Imóveis dessa Comarca. Pelo presente, o OUTORGANTE, na qualidade de"
+        " legítimo titular do domínio, transfere e cede ao OUTORGADO todo o"
+        " domínio, ações, direitos, jus e posse que até então exercia sobre o"
+        " aludido imóvel, passando o OUTORGADO a consolidar e exercer o pleno"
+        " DIREITO DE PROPRIEDADE sobre o lote em questão. O OUTORGADO declara"
+        " aceitar o presente Título Definitivo de Domínio em todos os seus"
+        " termos, cláusulas e condições. O presente Título é emitido em estrita"
+        " observância ao Decreto nº 244/2025, que autoriza a transferência do"
+        " domínio do imóvel, devidamente comprovada a titularidade do"
+        f" OUTORGANTE conforme a Matrícula n.º {f(dados['Matricula'])}. O ato"
+        " finaliza o Processo Administrativo n.º 01/2024 e habilita o registro"
+        " imediato do pleno Direito de Propriedade em nome do OUTORGADO perante"
+        " o Cartório de Registro de Imóveis. E por estarem justos, contratados e"
+        " de pleno acordo com todas as condições estabelecidas, as partes"
+        " firmam o presente Título de Domínio em 02 (duas) vias de igual teor e"
+        " forma, que será devidamente assinado por elas e por 02 (duas)"
+        " testemunhas."
+    )
+
+    pdf.multi_cell(0, 5, limpar(texto_corpo), align="J")
+    pdf.ln(10)
+
+    pdf.set_font("Arial", "I", 10)
+    data_final = (
+        f"Taguatinga-TO, {hoje.day} de {meses[hoje.month-1]} de {hoje.year}."
+    )
+    pdf.cell(0, 10, limpar(data_final), ln=True, align="R")
+    pdf.ln(10)
+
+    # --- ASSINATURAS PRINCIPAIS ---
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(0, 5, "__________________________________________", ln=True, align="C")
+    pdf.cell(0, 5, limpar("PAULO ROBERTO RIBEIRO"), ln=True, align="C")
+    pdf.set_font("Arial", "", 8)
+    pdf.cell(0, 4, limpar("Prefeito Municipal"), ln=True, align="C")
+    pdf.ln(8)
+
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(0, 5, "__________________________________________", ln=True, align="C")
+    pdf.cell(0, 5, limpar("LUAN AIRES RIBEIRO"), ln=True, align="C")
+    pdf.set_font("Arial", "", 8)
+    pdf.cell(0, 4, limpar("Secretário de Regularização Fundiária"), ln=True, align="C")
+    pdf.ln(8)
+
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(0, 5, "__________________________________________", ln=True, align="C")
+    pdf.cell(0, 5, limpar(f(dados['Nome'], 'upper')), ln=True, align="C")
+    pdf.set_font("Arial", "", 8)
+    pdf.cell(0, 4, limpar("Outorgado Adquirente"), ln=True, align="L")
+    pdf.ln(12)
+
+    # --- TESTEMUNHAS ---
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(0, 5, "__________________________________________", ln=True, align="L")
+    pdf.set_font("Arial", "", 8)
+    pdf.cell(0, 4, limpar("Testemunha 01"), ln=True, align="L")
+    pdf.cell(0, 4, limpar("CPF:_____._____._____-___"), ln=True, align="L")
+    pdf.ln(8)
+
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(0, 5, "__________________________________________", ln=True, align="L")
+    pdf.set_font("Arial", "", 8)
+    pdf.cell(0, 4, limpar("Testemunha 02"), ln=True, align="L")
+    pdf.cell(0, 4, limpar("CPF:_____._____._____-___"), ln=True, align="L")
+
+    retorno_pdf = pdf.output(dest="S")
+    if isinstance(retorno_pdf, str):
+        return retorno_pdf.encode("latin-1")
+    return bytes(retorno_pdf)
 
 
-# --- FUNÇÃO NATIVA PARA VALIDAR CPF ---
-def validar_cpf(cpf_str):
-    cpf_limpo = re.sub(r"\D", "", cpf_str)
-
-    if len(cpf_limpo) != 11 or cpf_limpo == cpf_limpo[0] * 11:
-        return False
-
-    # Validação do 1º dígito verificador
-    soma = sum(int(cpf_limpo[i]) * (10 - i) for i in range(9))
-    resto = (soma * 10) % 11
-    if resto == 10 or resto == 11:
-        resto = 0
-    if resto != int(cpf_limpo[9]):
-        return False
-
-    # Validação do 2º dígito verificador
-    soma = sum(int(cpf_limpo[i]) * (11 - i) for i in range(10))
-    resto = (soma * 10) % 11
-    if resto == 10 or resto == 11:
-        resto = 0
-    if resto != int(cpf_limpo[10]):
-        return False
-
-    return True
-
-
-# --- FUNÇÃO SEGURA PARA OBTER REFERÊNCIA DO FIREBASE ---
-def obter_referencia_firebase(caminho=""):
-    """Garante que a conexão com o Firebase utilize o app inicializado corretamente."""
-    try:
-        app = firebase_admin.get_app()
-    except ValueError:
-        # Se o app padrão não existir, inicializa agora usando st.secrets ou arquivo local
-        if "firebase" in st.secrets:
-            creds_dict = dict(st.secrets["firebase"])
-            cred = firebase_admin.credentials.Certificate(creds_dict)
-            database_url = st.secrets["firebase"].get("databaseURL", "")
-            if not database_url:
-                project_id = creds_dict.get("project_id", "")
-                database_url = f"https://{project_id}-default-rtdb.firebaseio.com/"
-            app = firebase_admin.initialize_app(cred, {"databaseURL": database_url})
-        else:
-            if os.path.exists("firebase_key.json"):
-                cred = firebase_admin.credentials.Certificate("firebase_key.json")
-                with open("firebase_key.json", "r") as f:
-                    key_data = json.load(f)
-                    project_id = key_data.get("project_id", "")
-                    database_url = f"https://{project_id}-default-rtdb.firebaseio.com/"
-                app = firebase_admin.initialize_app(
-                    cred, {"databaseURL": database_url}
-                )
-            else:
-                raise ValueError(
-                    "As credenciais do Firebase não foram encontradas no st.secrets nem"
-                    " em arquivo local."
-                )
-
-    if caminho:
-        return db.reference(caminho, app=app)
-    return db.reference(app=app)
-
-
-def salvar_registro(chave_antiga, *args):
+def salvar_registro(*args):
     colunas = [
         "Nome",
         "Nacionalidade",
@@ -123,25 +292,24 @@ def salvar_registro(chave_antiga, *args):
         "Fls",
     ]
 
-    novo_dict = dict(zip(colunas, args))
+    novo_df = pd.DataFrame([args], columns=colunas)
 
-    cpf_sanitizado = str(args[7])
-    lote_sanitizado = str(args[10])
-    quadra_sanitizada = str(args[11])
-    chave_nova = (
-        f"lote_{quadra_sanitizada}_{lote_sanitizado}_cpf_{cpf_sanitizado}".replace(
-            ".", "_"
-        )
-    )
+    if os.path.exists(DB_AUTORIZACAO):
+        df_ex = pd.read_csv(DB_AUTORIZACAO, dtype=str)
+        df_ex = df_ex[
+            ~(
+                (df_ex["CPF"] == args[7])
+                & (df_ex["Lote"] == args[10])
+                & (df_ex["Quadra"] == args[11])
+            )
+        ]
+        df_final = pd.concat([df_ex, novo_df], ignore_index=True)
+    else:
+        df_final = novo_df
 
-    # Se alterou o lote, quadra ou CPF, remove o registro antigo para evitar duplicidade
-    if chave_antiga and chave_antiga != chave_nova:
-        obter_referencia_firebase(f"autorizacoes_titulos/{chave_antiga}").delete()
+    df_final.to_csv(DB_AUTORIZACAO, index=False, encoding="utf-8-sig")
+    st.success("✅ Dados salvos com sucesso!")
 
-    ref = obter_referencia_firebase(f"autorizacoes_titulos/{chave_nova}")
-    ref.set(novo_dict)
-
-    st.success("✅ Dados salvos com sucesso no Firebase!")
     st.session_state.editar_autorizacao = None
     st.rerun()
 
@@ -157,30 +325,34 @@ def formulario_autorizacao(dados_edicao=None):
             st.rerun()
 
     dados_autocompletar = {}
-    df_existente = carregar_dados_firebase()
+    if os.path.exists(DB_AUTORIZACAO) and dados_edicao is None:
+        df_existente = pd.read_csv(DB_AUTORIZACAO, dtype=str)
+        if not df_existente.empty:
+            df_unicos = df_existente.drop_duplicates(subset=["CPF", "Nome"])
+            lista_pessoas = [
+                "-- Selecione para copiar dados (Múltiplos Lotes) --"
+            ] + [
+                f"{row['Nome']} (CPF: {row['CPF']})"
+                for _, row in df_unicos.iterrows()
+            ]
 
-    if not df_existente.empty and dados_edicao is None:
-        df_unicos = df_existente.drop_duplicates(subset=["CPF", "Nome"])
-        lista_pessoas = [
-            "-- Selecione para copiar dados (Múltiplos Lotes) --"
-        ] + [f"{row['Nome']} (CPF: {row['CPF']})" for _, row in df_unicos.iterrows()]
-
-        selecionado = st.selectbox(
-            "👤 Copiar dados de requerente já cadastrado:", lista_pessoas
-        )
-        if selecionado != "-- Selecione para copiar dados (Múltiplos Lotes) --":
-            nome_selecionado = selecionado.split(" (CPF:")[0]
-            dados_autocompletar = (
-                df_unicos[df_unicos["Nome"] == nome_selecionado]
-                .iloc[0]
-                .fillna("")
-                .to_dict()
+            selecionado = st.selectbox(
+                "👤 Copiar dados de requerente já cadastrado:", lista_pessoas
             )
+            if selecionado != "-- Selecione para copiar dados (Múltiplos Lotes) --":
+                nome_selecionado = selecionado.split(" (CPF:")[0]
+                dados_autocompletar = (
+                    df_unicos[df_unicos["Nome"] == nome_selecionado]
+                    .iloc[0]
+                    .fillna("")
+                    .to_dict()
+                )
 
     with st.form("form_autorizacao", clear_on_submit=False):
-        fonte_dados = (
-            dados_edicao if dados_edicao is not None else dados_autocompletar
-        )
+        if dados_edicao is not None:
+            fonte_dados = dados_edicao
+        else:
+            fonte_dados = dados_autocompletar
 
         st.subheader("👤 Requerente")
         col1, col2, col3 = st.columns([2, 1, 1])
@@ -257,6 +429,7 @@ def formulario_autorizacao(dados_edicao=None):
 
         col_mat, col_lei = st.columns(2)
         matr = col_mat.text_input("Matrícula", value=fonte_dados.get("Matricula", ""))
+
         opcoes_leis = [
             "MATRÍCULA nº 5.771 - Setor Norte 2° ETAPA",
             "MATRÍCULA nº 6.043 - Setor Buritizinho",
@@ -285,19 +458,16 @@ def formulario_autorizacao(dados_edicao=None):
         if st.form_submit_button("💾 SALVAR"):
             cpf_limpo = re.sub(r"\D", "", cpf)
             rg_limpo = re.sub(r"[\s.-]", "", rg)
+            validador_cpf = CPF()
 
-            if not validar_cpf(cpf_limpo):
+            if not validador_cpf.validate(cpf_limpo):
                 st.error("❌ CPF INVÁLIDO")
             elif not rg_limpo.isdigit():
                 st.error("❌ RG INVÁLIDO: Digite apenas números.")
             elif not lote_num or not quadra_num:
                 st.error("❌ O preenchimento do Lote e da Quadra é obrigatório.")
             else:
-                # Resgata a chave antiga caso venha do formulário de edição
-                chave_antiga = fonte_dados.get("_chave_firebase", None)
-
                 salvar_registro(
-                    chave_antiga,
                     nome,
                     nacionalidade,
                     estado_civil,
@@ -333,12 +503,10 @@ def formulario_autorizacao(dados_edicao=None):
 
 
 def lista_e_gestao():
-    df = carregar_dados_firebase()
-    if df.empty:
+    if not os.path.exists(DB_AUTORIZACAO):
         st.info("Nenhum dado cadastrado.")
         return
-
-    df = df.fillna("")
+    df = pd.read_csv(DB_AUTORIZACAO, dtype=str)
     busca = st.text_input("🔍 Pesquisar")
     if busca:
         df = df[
@@ -350,7 +518,7 @@ def lista_e_gestao():
         with st.container(border=True):
             c1, c2, c3, c4 = st.columns([2.5, 0.8, 0.8, 1.2])
             c1.write(
-                f"👤 **{row['Nome']}** \n📍 Lote {row['Lote']} - Quadra"
+                f"👤 **{row['Nome']}**  \n📍 Lote {row['Lote']} - Quadra"
                 f" {row['Quadra']} - Setor {row['Setor']}"
             )
 
@@ -359,24 +527,24 @@ def lista_e_gestao():
                 st.rerun()
 
             if c3.button("🗑️", key=f"d_{idx}"):
-                cpf_del = str(row["CPF"])
-                lote_del = str(row["Lote"])
-                quadra_del = str(row["Quadra"])
-                chave_del = (
-                    f"lote_{quadra_del}_{lote_del}_cpf_{cpf_del}".replace(".", "_")
-                )
-                obter_referencia_firebase(f"autorizacoes_titulos/{chave_del}").delete()
+                df = df[
+                    ~(
+                        (df["CPF"] == row["CPF"])
+                        & (df["Lote"] == row["Lote"])
+                        & (df["Quadra"] == row["Quadra"])
+                    )
+                ]
+                df.to_csv(DB_AUTORIZACAO, index=False, encoding="utf-8-sig")
                 st.rerun()
 
-            if "gerar_pdf_autorizacao_fpdf" in globals():
-                pdf_bytes = gerar_pdf_autorizacao_fpdf(row)
-                c4.download_button(
-                    "📄 PDF",
-                    pdf_bytes,
-                    f"Titulo_{row['Nome']}_Lote_{row['Lote']}.pdf",
-                    "application/pdf",
-                    key=f"p_{idx}",
-                )
+            pdf_bytes = gerar_pdf_autorizacao_fpdf(row)
+            c4.download_button(
+                "📄 PDF",
+                pdf_bytes,
+                f"Titulo_{row['Nome']}_Lote_{row['Lote']}.pdf",
+                "application/pdf",
+                key=f"p_{idx}",
+            )
 
 
 def exibir_pagina():
