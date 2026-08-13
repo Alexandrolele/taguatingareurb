@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import re
+import firebase_admin
 from firebase_admin import db, exceptions
 
 # --- FUNÇÃO NATIVA PARA VALIDAR CPF ---
@@ -28,10 +29,32 @@ def validar_cpf(cpf_str):
         
     return True
 
+# --- FUNÇÃO SEGURA PARA OBTER REFERÊNCIA DO FIREBASE ---
+def obter_referencia_firebase(caminho=""):
+    """Garante que a conexão com o Firebase utilize o app inicializado corretamente."""
+    if not firebase_admin._apps:
+        # Se por acaso o app não estiver inicializado, tenta carregar do st.secrets
+        try:
+            if "firebase" in st.secrets:
+                creds_dict = dict(st.secrets["firebase"])
+                cred = firebase_admin.credentials.Certificate(creds_dict)
+                database_url = st.secrets["firebase"].get("databaseURL", "")
+                if not database_url:
+                    project_id = creds_dict.get("project_id", "")
+                    database_url = f"https://{project_id}-default-rtdb.firebaseio.com/"
+                firebase_admin.initialize_app(cred, {'databaseURL': database_url})
+        except Exception:
+            pass
+
+    app = firebase_admin.get_app()
+    if caminho:
+        return db.reference(caminho, app=app)
+    return db.reference(app=app)
+
 # --- FUNÇÕES DE BANCO DE DADOS COM FIREBASE ---
 def carregar_dados_firebase():
     try:
-        ref = db.reference("autorizacoes_titulos")
+        ref = obter_referencia_firebase("autorizacoes_titulos")
         dados = ref.get()
         
         if not dados:
@@ -63,7 +86,7 @@ def salvar_registro(*args):
     quadra_sanitizada = str(args[11])
     chave_registro = f"lote_{quadra_sanitizada}_{lote_sanitizado}_cpf_{cpf_sanitizado}".replace(".", "_")
 
-    ref = db.reference(f"autorizacoes_titulos/{chave_registro}")
+    ref = obter_referencia_firebase(f"autorizacoes_titulos/{chave_registro}")
     ref.set(novo_dict)
 
     st.success("✅ Dados salvos com sucesso no Firebase!")
@@ -222,7 +245,7 @@ def lista_e_gestao():
                 lote_del = str(row["Lote"])
                 quadra_del = str(row["Quadra"])
                 chave_del = f"lote_{quadra_del}_{lote_del}_cpf_{cpf_del}".replace(".", "_")
-                db.reference(f"autorizacoes_titulos/{chave_del}").delete()
+                obter_referencia_firebase(f"autorizacoes_titulos/{chave_del}").delete()
                 st.rerun()
 
             if 'gerar_pdf_autorizacao_fpdf' in globals():
