@@ -41,7 +41,7 @@ def inicializar_firebase():
 inicializar_firebase()
 
 # Importações dos seus arquivos e funções internas (após o Firebase inicializado)
-import autorisação as autorizacao  # verifique se o nome do seu arquivo é autorizacao.py
+import autorizacao as autorizacao  # verifique se o nome do seu arquivo é autorizacao.py
 from gerar_certidao import gerar_pdf_projeto
 import certidaoreurb 
 
