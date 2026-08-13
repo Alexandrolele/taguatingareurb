@@ -233,7 +233,7 @@ def gerar_pdf_autorizacao_fpdf(dados):
     pdf.cell(0, 5, "__________________________________________", ln=True, align="C")
     pdf.cell(0, 5, limpar(f(dados['Nome'], 'upper')), ln=True, align="C")
     pdf.set_font("Arial", "", 8)
-    pdf.cell(0, 4, limpar("Outorgado Adquirente"), ln=True, align="L")
+    pdf.cell(0, 4, limpar("Outorgado Adquirente"), ln=True, align="C")
     pdf.ln(12)
 
     # --- TESTEMUNHAS ---
