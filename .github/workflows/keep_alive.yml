@@ -1,0 +1,17 @@
+name: Keep Streamlit Alive
+
+on:
+  schedule:
+    # Roda a cada 4 horas (você pode ajustar conforme preferir)
+    - cron: '0 */4 * * *'
+  workflow_dispatch: # Permite rodar manualmente também pelo painel do GitHub
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acessar URL do App
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: 'https://seu-aplicativo.streamlit.app' # <--- COLOCUE A SUA URL AQUI
+          method: 'GET'
