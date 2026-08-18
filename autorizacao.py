@@ -4,7 +4,7 @@ import re
 from fpdf import FPDF
 import pandas as pd
 import streamlit as st
-from validate_docbr import CPF
+from validate_docbr import CPF, CNPJ  # <--- Importado o CNPJ
 
 # Nome do arquivo de banco de dados
 DB_AUTORIZACAO = "dados_autor_titulos.csv"
@@ -34,11 +34,14 @@ def gerar_pdf_autorizacao_fpdf(dados):
             return ""
         return str(txt).encode("latin-1", "replace").decode("latin-1")
 
-    def formatar_cpf(num_cpf):
-        num_cpf = re.sub(r"\D", "", str(num_cpf))
-        if len(num_cpf) == 11:
-            return f"{num_cpf[:3]}.{num_cpf[3:6]}.{num_cpf[6:9]}-{num_cpf[9:]}"
-        return num_cpf
+    # Função unificada para formatar CPF ou CNPJ
+    def formatar_cpf_cnpj(num_doc):
+        num_doc = re.sub(r"\D", "", str(num_doc))
+        if len(num_doc) == 11:
+            return f"{num_doc[:3]}.{num_doc[3:6]}.{num_doc[6:9]}-{num_doc[9:]}"
+        elif len(num_doc) == 14:
+            return f"{num_doc[:2]}.{num_doc[2:5]}.{num_doc[5:8]}/{num_doc[8:12]}-{num_doc[12:]}"
+        return num_doc
 
     # --- CABEÇALHO CENTRALIZADO ---
     pdf.set_y(12)
@@ -128,7 +131,11 @@ def gerar_pdf_autorizacao_fpdf(dados):
         if f(dados.get("Chanfro_Com"))
         else ""
     )
-    cpf_formatado = formatar_cpf(dados.get("CPF", ""))
+    doc_formatado = formatar_cpf_cnpj(dados.get("CPF", ""))
+    
+    # Identifica se é CPF ou CNPJ para o texto do corpo se necessário
+    doc_limpo_check = re.sub(r"\D", "", str(dados.get("CPF", "")))
+    rotulo_doc = "CNPJ N º" if len(doc_limpo_check) == 14 else "CPF N º"
 
     v_rg = f(dados.get("RG"))
     v_ssp = f(dados.get("SSP"))
@@ -170,7 +177,7 @@ def gerar_pdf_autorizacao_fpdf(dados):
         f" Taguatinga/TO, ao (à) detentor (a), {f(dados['Nome'], 'upper')},"
         f" brasileiro(a), {f(dados['Estado Civil'], 'lower')},"
         f" {f(dados['Profissao'], 'lower')}, portador(a) da CI/RG nº"
-        f" {rg_completo} e do CPF N º {cpf_formatado}, residente na"
+        f" {rg_completo} e do {rotulo_doc} {doc_formatado}, residente na"
         f" {f(dados['End_Residencial'])}, {f(dados['Bairro_Residencial'])}. O"
         " Município de Taguatinga TO, aqui designado OUTORGANTE, é legitimo"
         " titular do domínio do imóvel público municipal, conforme Título"
@@ -331,7 +338,7 @@ def formulario_autorizacao(dados_edicao=None):
             lista_pessoas = [
                 "-- Selecione para copiar dados (Múltiplos Lotes) --"
             ] + [
-                f"{row['Nome']} (CPF: {row['CPF']})"
+                f"{row['Nome']} (CPF/CNPJ: {row['CPF']})"
                 for _, row in df_unicos.iterrows()
             ]
 
@@ -339,7 +346,7 @@ def formulario_autorizacao(dados_edicao=None):
                 "👤 Copiar dados de requerente já cadastrado:", lista_pessoas
             )
             if selecionado != "-- Selecione para copiar dados (Múltiplos Lotes) --":
-                nome_selecionado = selecionado.split(" (CPF:")[0]
+                nome_selecionado = selecionado.split(" (CPF/CNPJ:")[0]
                 dados_autocompletar = (
                     df_unicos[df_unicos["Nome"] == nome_selecionado]
                     .iloc[0]
@@ -384,7 +391,7 @@ def formulario_autorizacao(dados_edicao=None):
 
         col_cpf, col_end, col_bairro = st.columns([1.5, 2, 1])
         cpf = col_cpf.text_input(
-            "CPF/CNPJ", value=fonte_dados.get("CPF", ""), placeholder="000.000.000-00"
+            "CPF/CNPJ", value=fonte_dados.get("CPF", ""), placeholder="000.000.000-00 ou CNPJ"
         )
         endereco_res = col_end.text_input(
             "Endereço", value=fonte_dados.get("End_Residencial", "")
@@ -456,12 +463,20 @@ def formulario_autorizacao(dados_edicao=None):
         fls = nt3.text_input("FLS.", value=fonte_dados.get("Fls", ""))
 
         if st.form_submit_button("💾 SALVAR"):
-            cpf_limpo = re.sub(r"\D", "", cpf)
+            doc_limpo = re.sub(r"\D", "", cpf)
             rg_limpo = re.sub(r"[\s.-]", "", rg)
             validador_cpf = CPF()
+            validador_cnpj = CNPJ()
 
-            if not validador_cpf.validate(cpf_limpo):
-                st.error("❌ CPF INVÁLIDO")
+            # Validação flexível para CPF (11 dígitos) ou CNPJ (14 dígitos)
+            documento_valido = False
+            if len(doc_limpo) == 11:
+                documento_valido = validador_cpf.validate(doc_limpo)
+            elif len(doc_limpo) == 14:
+                documento_valido = validador_cnpj.validate(doc_limpo)
+
+            if not documento_valido:
+                st.error("❌ CPF ou CNPJ INVÁLIDO")
             elif not rg_limpo.isdigit():
                 st.error("❌ RG INVÁLIDO: Digite apenas números.")
             elif not lote_num or not quadra_num:
@@ -475,7 +490,7 @@ def formulario_autorizacao(dados_edicao=None):
                     rg.strip().upper(),
                     ssp,
                     uf_rg,
-                    cpf_limpo,
+                    doc_limpo,
                     endereco_res,
                     bairro_res,
                     lote_num,
