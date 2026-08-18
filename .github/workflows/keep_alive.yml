@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Acessar URL do App
         run: |
-          curl -L --fail https://reurbtaguatinga.streamlit.app/
+          curl -I https://reurbtaguatinga.streamlit.app/
