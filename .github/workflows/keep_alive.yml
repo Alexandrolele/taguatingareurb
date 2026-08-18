@@ -10,9 +10,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Acessar URL do App
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: 'https://reurbtaguatinga.streamlit.app/'
-          method: 'GET'
-          timeout: 30000        # Aumenta o tempo limite para 30 segundos
-          customHeaders: '{"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}'
+        run: |
+          curl -L --fail https://reurbtaguatinga.streamlit.app/
