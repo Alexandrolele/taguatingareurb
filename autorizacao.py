@@ -366,6 +366,7 @@ def formulario_autorizacao(dados_edicao=None):
             "Divorciado(a)",
             "Viúvo(a)",
             "União Estável",
+            "Empresa",
         ]
         civil_salvo = fonte_dados.get("Estado Civil", "Solteiro(a)")
         idx_civil = (
@@ -383,7 +384,7 @@ def formulario_autorizacao(dados_edicao=None):
 
         col_cpf, col_end, col_bairro = st.columns([1.5, 2, 1])
         cpf = col_cpf.text_input(
-            "CPF", value=fonte_dados.get("CPF", ""), placeholder="000.000.000-00"
+            "CPF/CNPJ", value=fonte_dados.get("CPF", ""), placeholder="000.000.000-00"
         )
         endereco_res = col_end.text_input(
             "Endereço", value=fonte_dados.get("End_Residencial", "")
