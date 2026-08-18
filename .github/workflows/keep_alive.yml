@@ -13,5 +13,5 @@ jobs:
       - name: Acessar URL do App
         uses: fjogeleit/http-request-action@v1
         with:
-          url: 'https://seu-aplicativo.streamlit.app' # <--- COLOCUE A SUA URL AQUI
+          url: 'https://reurbtaguatinga.streamlit.app/' # <--- COLOCUE A SUA URL AQUI
           method: 'GET'
