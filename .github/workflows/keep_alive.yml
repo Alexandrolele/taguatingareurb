@@ -1,6 +1,17 @@
-- name: Acessar app Streamlit
+name: Keep Streamlit Alive
+
+on:
+  schedule:
+    # Roda a cada 4 horas
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acessar app Streamlit
         run: |
-          # O comando curl vai tentar acessar a página, se der erro de 
-          # redirecionamento infinito, o '|| true' faz o workflow terminar 
-          # como sucesso, que é o que você precisa.
+          # O '|| true' garante que o workflow termine como sucesso mesmo 
+          # se o servidor retornar um erro de redirecionamento.
           curl -I https://reurbtaguatinga.streamlit.app/ || true
