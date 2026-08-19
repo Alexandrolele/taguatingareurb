@@ -2,7 +2,6 @@ name: Keep Streamlit Alive
 
 on:
   schedule:
-    # Roda a cada 4 horas (ajuste o cron conforme sua preferência)
     - cron: "0 */4 * * *"
   workflow_dispatch:
 
@@ -12,4 +11,4 @@ jobs:
     steps:
       - name: Acessar endpoint de saúde do Streamlit
         run: |
-          curl -I https://reurbtaguatinga.streamlit.app/_stcore/health
+          curl -IL https://reurbtaguatinga.streamlit.app/_stcore/health
