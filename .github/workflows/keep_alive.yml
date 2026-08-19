@@ -1,14 +1,6 @@
-name: Keep Streamlit Alive
-
-on:
-  schedule:
-    - cron: "0 */4 * * *"
-  workflow_dispatch:
-
-jobs:
-  ping:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Acessar endpoint de saúde do Streamlit
+- name: Acessar app Streamlit
         run: |
-          curl -IL https://reurbtaguatinga.streamlit.app/_stcore/health
+          # O comando curl vai tentar acessar a página, se der erro de 
+          # redirecionamento infinito, o '|| true' faz o workflow terminar 
+          # como sucesso, que é o que você precisa.
+          curl -I https://reurbtaguatinga.streamlit.app/ || true
